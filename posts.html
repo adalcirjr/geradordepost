@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Ofertas - Supermercado</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            background-color: #f4f4f9; 
+            padding: 15px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center;
+            gap: 20px; 
+            margin: 0;
+        }
+
+        @media (min-width: 768px) {
+            body {
+                flex-direction: row;
+                align-items: flex-start;
+                justify-content: center;
+                padding: 40px;
+            }
+        }
+
+        .controles { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1); 
+            width: 100%; 
+            max-width: 400px; 
+            box-sizing: border-box;
+        }
+
+        .controles h2, .preview h2 { margin-top: 0; text-align: center; color: #333; }
+        .controles label { display: block; margin-top: 15px; font-weight: bold; color: #555; }
+        .controles input[type="text"], .controles input[type="file"] { width: 100%; padding: 10px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
+        .controles input[type="color"] { width: 100%; height: 45px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; padding: 0; }
+        
+        button { background-color: #e74c3c; color: white; border: none; padding: 15px; margin-top: 25px; width: 100%; font-size: 16px; font-weight: bold; border-radius: 4px; cursor: pointer; }
+        button:hover { background-color: #c0392b; }
+
+        .preview { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            width: 100%;
+            max-width: 500px;
+        }
+
+        /* A imagem real que vai aparecer na tela */
+        #imagemFinal {
+            background: #fff; 
+            border: 1px solid #ccc; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1); 
+            width: 100%; 
+            height: auto; 
+            aspect-ratio: 1 / 1; 
+            display: block; /* Garante que ela apareça */
+        }
+
+        .dica-ios {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #666;
+            text-align: center;
+            background-color: #e8f4fd;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #bae0ff;
+            width: 100%;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="controles">
+        <h2>Criar Oferta</h2>
+        
+        <label for="corFundo">Cor do Fundo:</label>
+        <input type="color" id="corFundo" value="#ffcc00" oninput="desenharArte()">
+
+        <label for="produtoNome">Nome do Produto:</label>
+        <input type="text" id="produtoNome" placeholder="Ex: Arroz Branco 5kg" oninput="desenharArte()">
+
+        <label for="produtoPreco">Preço (R$):</label>
+        <input type="text" id="produtoPreco" placeholder="Ex: 24,99" oninput="desenharArte()">
+
+        <label for="dataValidade">Validade da Oferta:</label>
+        <input type="text" id="dataValidade" placeholder="Ex: Válido até 30/10" oninput="desenharArte()">
+
+        <label for="imagemProduto">Foto do Produto:</label>
+        <input type="file" id="imagemProduto" accept="image/*" onchange="carregarImagem(event)">
+
+        <button onclick="baixarImagem()">Baixar Imagem</button>
+    </div>
+
+    <div class="preview">
+        <h2>Pré-visualização</h2>
+        
+        <img id="imagemFinal" alt="Sua oferta aparecerá aqui" src="" />
+        
+        <div class="dica-ios">
+            <strong>Como salvar no iPhone:</strong><br> 
+            Pressione e segure o dedo na imagem acima e escolha <b>"Salvar em Fotos"</b>.
+        </div>
+    </div>
+
+    <script>
+        // Criamos o canvas virtualmente na memória, sem colocar no HTML (Resolve o bug do Safari)
+        const canvas = document.createElement('canvas');
+        canvas.width = 1080;
+        canvas.height = 1080;
+        const ctx = canvas.getContext('2d');
+        
+        const imgFinal = document.getElementById('imagemFinal');
+        let imagemCarregada = null;
+
+        function desenharArte() {
+            const corFundoSelecionada = document.getElementById('corFundo').value;
+            const nome = document.getElementById('produtoNome').value || "NOME DO PRODUTO";
+            const preco = document.getElementById('produtoPreco').value || "0,00";
+            const validade = document.getElementById('dataValidade').value || "Válido até DD/MM";
+
+            // Limpa o canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. Fundo colorido
+            ctx.fillStyle = corFundoSelecionada; 
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 2. Círculo branco
+            ctx.fillStyle = "#ffffff";
+            ctx.beginPath();
+            ctx.arc(canvas.width / 2, canvas.height / 2 - 50, 400, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 3. Imagem do produto
+            if (imagemCarregada) {
+                const tamanhoImg = 550; 
+                const x = (canvas.width - tamanhoImg) / 2;
+                const y = (canvas.height - tamanhoImg) / 2 - 100;
+                
+                ctx.save();
+                
+                // Sombra suave (Funciona bem no Safari)
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+                ctx.shadowBlur = 20;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 15;
+
+                ctx.drawImage(imagemCarregada, x, y, tamanhoImg, tamanhoImg);
+                ctx.restore();
+            }
+
+            // 4. Nome do Produto
+            ctx.fillStyle = "#333333";
+            ctx.font = "bold 75px Arial";
+            ctx.textAlign = "center";
+            ctx.fillText(nome.toUpperCase(), canvas.width / 2, 120);
+
+            // 5. Tarja Vermelha
+            ctx.fillStyle = "#e74c3c"; 
+            ctx.fillRect(0, canvas.height - 350, canvas.width, 200);
+
+            // 6. Preço
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 150px Arial";
+            ctx.fillText("R$ " + preco, canvas.width / 2, canvas.height - 210);
+
+            // 7. Validade
+            ctx.fillStyle = "#333333";
+            ctx.font = "40px Arial";
+            ctx.fillText(validade, canvas.width / 2, canvas.height - 60);
+
+            // Passa a arte finalizada do canvas invisível para a tag <img /> que está na tela
+            imgFinal.src = canvas.toDataURL('image/png');
+        }
+
+        function carregarImagem(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    imagemCarregada = img;
+                    desenharArte();
+                }
+                img.src = e.target.result;
+            }
+            reader.readAsDataURL(file);
+        }
+
+        function baixarImagem() {
+            // Se for computador ou Android, o botão força o download
+            const link = document.createElement('a');
+            link.download = 'oferta-supermercado.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        // Desenhar a tela inicial vazia assim que a página carrega
+        window.onload = desenharArte;
+    </script>
+</body>
+</html>
